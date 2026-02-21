@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>購入 vs 賃貸+投資 徹底シミュレーター</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --purchase:#059669;--purchase-light:#ecfdf5;--purchase-bg:#d1fae5;
+  --rent:#2563eb;--rent-light:#eff6ff;--rent-bg:#dbeafe;
+  --text:#111827;--sub:#6b7280;--bg:#f3f4f6;--card:#fff;--border:#e5e7eb;
+  --danger:#dc2626;--warn:#f59e0b;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans',sans-serif;
+  background:var(--bg);color:var(--text);line-height:1.6}
+header{background:linear-gradient(135deg,#064e3b 0%,#1e3a5f 100%);color:#fff;
+  padding:2rem 1.5rem;text-align:center}
+header h1{font-size:1.6rem;font-weight:800;margin-bottom:.4rem}
+header p{font-size:.9rem;opacity:.85}
+main{max-width:1400px;margin:0 auto;padding:1rem}
+
+/* === Params Panel === */
+.params-panel{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+@media(max-width:960px){.params-panel{grid-template-columns:1fr}}
+.param-group{background:var(--card);border-radius:12px;padding:1.2rem;
+  border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.param-group h2{font-size:1rem;font-weight:700;margin-bottom:.8rem;
+  padding-bottom:.5rem;border-bottom:2px solid var(--border)}
+.param-group.purchase h2{border-bottom-color:var(--purchase);color:var(--purchase)}
+.param-group.rent h2{border-bottom-color:var(--rent);color:var(--rent)}
+.param-group.common h2{border-bottom-color:var(--sub);color:var(--text)}
+.field{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap}
+.field label{flex:0 0 140px;font-size:.82rem;color:var(--sub);white-space:nowrap}
+.field input{width:90px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;
+  font-size:.9rem;text-align:right;background:#fafafa}
+.field input:focus{outline:none;border-color:var(--purchase);box-shadow:0 0 0 2px rgba(5,150,105,.15)}
+.field .unit{font-size:.78rem;color:var(--sub);white-space:nowrap}
+.field-sub{font-size:.75rem;color:var(--sub);margin:-2px 0 6px 144px}
+.sub-heading{font-size:.82rem;font-weight:600;color:var(--text);
+  margin:10px 0 6px;padding:4px 0;border-top:1px dashed var(--border)}
+
+/* === Summary Cards === */
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem}
+.card{background:var(--card);border-radius:12px;padding:1.2rem;text-align:center;
+  border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card.highlight{background:linear-gradient(135deg,#064e3b,#1e3a5f);color:#fff;grid-column:span 2}
+@media(max-width:600px){.card.highlight{grid-column:span 1}}
+.card .label{font-size:.78rem;opacity:.7;margin-bottom:.3rem}
+.card .value{font-size:1.5rem;font-weight:800}
+.card.highlight .value{font-size:2rem}
+.card .sub{font-size:.75rem;opacity:.6;margin-top:.2rem}
+
+/* === Detail Comparison === */
+.detail-section{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+@media(max-width:760px){.detail-section{grid-template-columns:1fr}}
+.detail-box{background:var(--card);border-radius:12px;padding:1.2rem;
+  border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.detail-box h3{font-size:.95rem;font-weight:700;margin-bottom:.8rem;
+  padding-bottom:.4rem;border-bottom:2px solid var(--border)}
+.detail-box.purchase h3{color:var(--purchase);border-color:var(--purchase)}
+.detail-box.rent h3{color:var(--rent);border-color:var(--rent)}
+.detail-row{display:flex;justify-content:space-between;padding:4px 0;
+  font-size:.85rem;border-bottom:1px dotted var(--border)}
+.detail-row:last-child{border-bottom:none;font-weight:700;font-size:.95rem;padding-top:8px;
+  border-top:2px solid var(--border)}
+.detail-row .dl{color:var(--sub)}
+
+/* === Charts === */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
+@media(max-width:760px){.charts-grid{grid-template-columns:1fr}}
+.chart-box{background:var(--card);border-radius:12px;padding:1rem;
+  border:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.chart-box.full{grid-column:1/-1}
+.chart-box h3{font-size:.9rem;font-weight:700;margin-bottom:.5rem;text-align:center}
+.chart-wrap{position:relative;height:300px}
+
+/* === Sensitivity === */
+.sensitivity-section{background:var(--card);border-radius:12px;padding:1.2rem;
+  border:1px solid var(--border);margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.sensitivity-section h2{font-size:1rem;font-weight:700;margin-bottom:.8rem}
+.sens-table-wrap{overflow-x:auto}
+.sens-table{width:100%;border-collapse:collapse;font-size:.82rem;text-align:center}
+.sens-table th,.sens-table td{padding:6px 10px;border:1px solid var(--border)}
+.sens-table th{background:#f9fafb;font-weight:600}
+.sens-table .current{background:#fef3c7;font-weight:700}
+.sens-table .purchase-win{background:var(--purchase-light);color:var(--purchase)}
+.sens-table .rent-win{background:var(--rent-light);color:var(--rent)}
+.sens-table .corner{background:#f3f4f6}
+
+/* === Monthly Table === */
+.monthly-section{background:var(--card);border-radius:12px;padding:1.2rem;
+  border:1px solid var(--border);margin-bottom:2rem;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.monthly-section h2{font-size:1rem;font-weight:700;margin-bottom:.3rem}
+.monthly-section .toggle-btn{display:inline-block;padding:4px 14px;font-size:.8rem;
+  border:1px solid var(--border);border-radius:6px;background:#f9fafb;cursor:pointer;
+  margin-bottom:.8rem}
+.monthly-section .toggle-btn:hover{background:#e5e7eb}
+.table-scroll{max-height:500px;overflow:auto;border:1px solid var(--border);border-radius:8px}
+.monthly-table{width:100%;border-collapse:collapse;font-size:.78rem;white-space:nowrap}
+.monthly-table th{position:sticky;top:0;background:#f9fafb;z-index:2;
+  padding:6px 8px;border-bottom:2px solid var(--border);font-weight:600}
+.monthly-table td{padding:5px 8px;border-bottom:1px solid #f3f4f6;text-align:right}
+.monthly-table td:first-child,.monthly-table td:nth-child(2){text-align:center}
+.monthly-table tr:hover{background:#f9fafb}
+.monthly-table .col-purchase{background:rgba(5,150,105,.03)}
+.monthly-table .col-rent{background:rgba(37,99,235,.03)}
+.monthly-table .col-header-purchase{background:#ecfdf5;color:var(--purchase)}
+.monthly-table .col-header-rent{background:#eff6ff;color:var(--rent)}
+
+/* === Footer === */
+footer{text-align:center;padding:2rem 1rem;color:var(--sub);font-size:.8rem}
+footer a{color:var(--purchase)}
+
+/* result badge */
+.result-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.8rem;font-weight:700}
+.result-badge.purchase{background:var(--purchase-bg);color:var(--purchase)}
+.result-badge.rent{background:var(--rent-bg);color:var(--rent)}
+
+/* scroll-hint */
+.scroll-hint{font-size:.75rem;color:var(--sub);margin-bottom:.4rem}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>マンション購入 vs 賃貸+投資 徹底シミュレーター</h1>
+  <p>すべてのパラメータを自由に変更 &mdash; リアルタイムで損益分岐点を再計算します</p>
+</header>
+
+<main>
+<!-- ===== PARAMS ===== -->
+<section class="params-panel">
+
+  <!-- Purchase -->
+  <div class="param-group purchase">
+    <h2>&#x1F7E2; 購入条件</h2>
+    <div class="field"><label>物件価格</label><input id="propertyPrice" type="number" value="14000" step="100"><span class="unit">万円</span></div>
+    <div class="field"><label>購入諸費用率</label><input id="purchaseCostRate" type="number" value="7" step="0.5"><span class="unit">%</span></div>
+    <div class="field"><label>ローン期間</label><input id="loanTerm" type="number" value="35" step="1"><span class="unit">年</span></div>
+
+    <div class="sub-heading">金利（段階的上昇）</div>
+    <div class="field"><label>1〜<input id="ratePeriod1" type="number" value="3" step="1" style="width:40px">年</label><input id="rate1" type="number" value="1.5" step="0.05"><span class="unit">%</span></div>
+    <div class="field"><label><span id="ratePeriod1End">4</span>〜<input id="ratePeriod2" type="number" value="6" step="1" style="width:40px">年</label><input id="rate2" type="number" value="1.75" step="0.05"><span class="unit">%</span></div>
+    <div class="field"><label><span id="ratePeriod2End">7</span>年目以降</label><input id="rate3" type="number" value="2.0" step="0.05"><span class="unit">%</span></div>
+
+    <div class="sub-heading">管理費+修繕積立金</div>
+    <div class="field"><label>1〜<input id="mgmtPeriod1" type="number" value="5" step="1" style="width:40px">年</label><input id="mgmtFee1" type="number" value="4" step="0.5"><span class="unit">万円/月</span></div>
+    <div class="field"><label><span id="mgmtPeriod1End">6</span>年目以降</label><input id="mgmtFee2" type="number" value="6" step="0.5"><span class="unit">万円/月</span></div>
+
+    <div class="sub-heading">税金・控除</div>
+    <div class="field"><label>固定資産税</label><input id="propertyTax" type="number" value="20" step="1"><span class="unit">万円/年</span></div>
+    <div class="field"><label>住宅ローン控除(ZEH)</label><input id="mortgageDeduction" type="number" value="31.5" step="0.5"><span class="unit">万円/年</span></div>
+
+    <div class="sub-heading">売却</div>
+    <div class="field"><label>保有期間</label><input id="holdYears" type="number" value="10" step="1"><span class="unit">年</span></div>
+    <div class="field"><label>売却コスト率</label><input id="sellingCostRate" type="number" value="4" step="0.5"><span class="unit">%</span></div>
+    <div class="field"><label>建物比率（税計算用）</label><input id="buildingRatio" type="number" value="50" step="5"><span class="unit">%</span></div>
+  </div>
+
+  <!-- Rent -->
+  <div class="param-group rent">
+    <h2>&#x1F535; 賃貸条件</h2>
+    <div class="field"><label>初期家賃</label><input id="startRent" type="number" value="33" step="0.5"><span class="unit">万円/月</span></div>
+    <div class="field"><label>家賃上昇額</label><input id="rentIncrease" type="number" value="1.5" step="0.5"><span class="unit">万円</span></div>
+    <div class="field"><label>改定間隔</label><input id="rentInterval" type="number" value="2" step="1"><span class="unit">年ごと</span></div>
+    <div class="field"><label>礼金</label><input id="keyMoney" type="number" value="1" step="0.5"><span class="unit">ヶ月分</span></div>
+    <div class="field"><label>更新料</label><input id="renewalFee" type="number" value="1" step="0.5"><span class="unit">ヶ月分</span></div>
+    <div class="field"><label>更新間隔</label><input id="renewalInterval" type="number" value="2" step="1"><span class="unit">年ごと</span></div>
+
+    <div class="sub-heading">投資条件</div>
+    <div class="field"><label>年間利回り (NISA)</label><input id="investReturn" type="number" value="7" step="0.5"><span class="unit">%</span></div>
+
+    <div class="sub-heading" style="margin-top:16px;font-size:.75rem;color:var(--sub);font-weight:400">
+      ※ 賃貸側の毎月投資額 =<br>「購入側の月額支出」−「家賃」−「一時金」<br>
+      ※ 一時金で拠出不足分は翌月以降に繰越
+    </div>
+  </div>
+
+  <!-- Common / Sale Price -->
+  <div class="param-group common">
+    <h2>&#x2699;&#xFE0F; 比較条件</h2>
+    <div class="field"><label>売却想定価格</label><input id="salePrice" type="number" value="14600" step="100"><span class="unit">万円</span></div>
+    <div class="field-sub">空欄にすると損益分岐点を自動算出</div>
+
+    <div class="sub-heading">団信の保険価値（参考）</div>
+    <div class="field"><label>同等生命保険料</label><input id="insuranceCost" type="number" value="1.18" step="0.1"><span class="unit">万円/月</span></div>
+    <div class="field-sub">SBI生命 死亡1億円 掛捨の目安</div>
+
+    <div class="sub-heading" style="margin-top:20px">クイックプリセット</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
+      <button class="toggle-btn" onclick="applyPreset('conservative')">保守的</button>
+      <button class="toggle-btn" onclick="applyPreset('base')">基本</button>
+      <button class="toggle-btn" onclick="applyPreset('optimistic')">楽観的</button>
+    </div>
+    <div class="field-sub" style="margin-left:0;margin-top:6px" id="presetDesc">「基本」= 記事の前提条件</div>
+  </div>
+</section>
+
+<!-- ===== SUMMARY CARDS ===== -->
+<section class="summary" id="summaryCards"></section>
+
+<!-- ===== DETAIL COMPARISON ===== -->
+<section class="detail-section" id="detailSection"></section>
+
+<!-- ===== CHARTS ===== -->
+<section class="charts-grid">
+  <div class="chart-box full">
+    <h3>損益分岐チャート（売却価格 vs 純資産）</h3>
+    <div class="chart-wrap"><canvas id="breakevenChart"></canvas></div>
+  </div>
+  <div class="chart-box">
+    <h3>累積支出の推移</h3>
+    <div class="chart-wrap"><canvas id="costChart"></canvas></div>
+  </div>
+  <div class="chart-box">
+    <h3>投資評価額の推移</h3>
+    <div class="chart-wrap"><canvas id="investChart"></canvas></div>
+  </div>
+</section>
+
+<!-- ===== SENSITIVITY ===== -->
+<section class="sensitivity-section">
+  <h2>感度分析：損益分岐売却価格（万円）</h2>
+  <p style="font-size:.78rem;color:var(--sub);margin-bottom:.8rem">
+    行 = 投資利回り、列 = 7年目以降の金利（1〜3年/4〜6年の金利は入力値を維持）
+  </p>
+  <div class="sens-table-wrap">
+    <table class="sens-table" id="sensTable"></table>
+  </div>
+</section>
+
+<!-- ===== MONTHLY TABLE ===== -->
+<section class="monthly-section">
+  <h2>月別明細（120ヶ月）</h2>
+  <button class="toggle-btn" id="toggleTable" onclick="toggleMonthlyTable()">▼ テーブルを表示</button>
+  <div id="monthlyWrap" style="display:none">
+    <p class="scroll-hint">← 横スクロールで全列表示 →</p>
+    <div class="table-scroll">
+      <table class="monthly-table" id="monthlyTable"></table>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p>※ 本ツールは概算シミュレーションです。実際の購入・投資判断には専門家にご相談ください。</p>
+  <p style="margin-top:.3rem">全計算はブラウザ内で完結し、データは外部送信されません。</p>
+</footer>
+
+<script>
+// ============================================================
+//  CORE CALCULATION ENGINE
+// ============================================================
+
+function getParams() {
+  const g = id => {
+    const el = document.getElementById(id);
+    return el ? parseFloat(el.value) || 0 : 0;
+  };
+  return {
+    propertyPrice: g('propertyPrice'),       // 万円
+    purchaseCostRate: g('purchaseCostRate'),  // %
+    loanTerm: g('loanTerm'),                 // 年
+    ratePeriod1: g('ratePeriod1'),            // 年
+    rate1: g('rate1'),                        // %
+    ratePeriod2: g('ratePeriod2'),            // 年
+    rate2: g('rate2'),                        // %
+    rate3: g('rate3'),                        // %
+    mgmtPeriod1: g('mgmtPeriod1'),            // 年
+    mgmtFee1: g('mgmtFee1'),                  // 万円/月
+    mgmtFee2: g('mgmtFee2'),                  // 万円/月
+    propertyTax: g('propertyTax'),            // 万円/年
+    mortgageDeduction: g('mortgageDeduction'),// 万円/年
+    holdYears: g('holdYears'),                // 年
+    sellingCostRate: g('sellingCostRate'),    // %
+    buildingRatio: g('buildingRatio'),        // %
+    startRent: g('startRent'),                // 万円/月
+    rentIncrease: g('rentIncrease'),          // 万円
+    rentInterval: g('rentInterval'),          // 年
+    keyMoney: g('keyMoney'),                  // ヶ月分
+    renewalFee: g('renewalFee'),              // ヶ月分
+    renewalInterval: g('renewalInterval'),    // 年
+    investReturn: g('investReturn'),          // %
+    salePrice: g('salePrice'),                // 万円
+    insuranceCost: g('insuranceCost'),        // 万円/月
+  };
+}
+
+function calcMonthlyPayment(principal, annualRate, months) {
+  if (months <= 0) return 0;
+  const r = annualRate / 100 / 12;
+  if (r === 0) return principal / months;
+  const c = Math.pow(1 + r, months);
+  return principal * r * c / (c - 1);
+}
+
+function simulate(params, overrides) {
+  const p = { ...params, ...overrides };
+  const months = Math.round(p.holdYears * 12);
+  const totalLoanMonths = Math.round(p.loanTerm * 12);
+  const loanAmount = p.propertyPrice * (1 + p.purchaseCostRate / 100);
+  const monthlyInvestRate = p.investReturn / 100 / 12;
+
+  // Rate period boundaries (in months)
+  const rp1End = Math.round(p.ratePeriod1 * 12);
+  const rp2End = Math.round(p.ratePeriod2 * 12);
+  const mgmtP1End = Math.round(p.mgmtPeriod1 * 12);
+  const rentIntervalMonths = Math.round(p.rentInterval * 12);
+  const renewalIntervalMonths = Math.round(p.renewalInterval * 12);
+
+  // ---- PURCHASE SIMULATION ----
+  let balance = loanAmount;
+  let currentPayment = calcMonthlyPayment(balance, p.rate1, totalLoanMonths);
+  let purchaseData = [];
+  let purchasePortfolio = 0;
+  let totalPurchasePayments = 0;
+  let totalPurchaseInterest = 0;
+
+  const annualInvest = p.mortgageDeduction - p.propertyTax; // 万円/年
+
+  for (let m = 1; m <= months; m++) {
+    // Determine current rate and recalculate payment if needed
+    let currentRate;
+    if (m <= rp1End) {
+      currentRate = p.rate1;
+    } else if (m <= rp2End) {
+      currentRate = p.rate2;
+    } else {
+      currentRate = p.rate3;
+    }
+
+    // Recalculate payment at rate change boundaries
+    if (m === rp1End + 1 && m <= months) {
+      const remaining = totalLoanMonths - rp1End;
+      currentPayment = calcMonthlyPayment(balance, p.rate2, remaining);
+    }
+    if (m === rp2End + 1 && m <= months) {
+      const remaining = totalLoanMonths - rp2End;
+      currentPayment = calcMonthlyPayment(balance, p.rate3, remaining);
+    }
+
+    const monthlyRate = currentRate / 100 / 12;
+    const interest = balance * monthlyRate;
+    const principal = currentPayment - interest;
+    balance = Math.max(0, balance - principal);
+
+    const mgmtFee = m <= mgmtP1End ? p.mgmtFee1 : p.mgmtFee2;
+    const totalMonthly = currentPayment + mgmtFee;
+    totalPurchasePayments += totalMonthly;
+    totalPurchaseInterest += interest;
+
+    // Purchase investment: grow then add annual lump sum
+    purchasePortfolio *= (1 + monthlyInvestRate);
+    // Invest at month 6, 18, 30... (every 12 months from month 6)
+    if (m >= 6 && (m - 6) % 12 === 0 && annualInvest > 0) {
+      purchasePortfolio += annualInvest;
+    }
+
+    purchaseData.push({
+      month: m,
+      payment: currentPayment,
+      interest,
+      principal,
+      balance,
+      mgmtFee,
+      total: totalMonthly,
+      rate: currentRate,
+      portfolio: purchasePortfolio,
+    });
+  }
+
+  // ---- RENT SIMULATION ----
+  let rentData = [];
+  let rentPortfolio = 0;
+  let carryOver = 0;
+  let totalRentPayments = 0;
+  let totalOneTimeCosts = 0;
+
+  for (let m = 1; m <= months; m++) {
+    // Current rent
+    const periodsElapsed = rentIntervalMonths > 0
+      ? Math.floor((m - 1) / rentIntervalMonths) : 0;
+    const currentRent = p.startRent + periodsElapsed * p.rentIncrease;
+
+    // One-time costs
+    let oneTime = 0;
+    if (m === 1) {
+      oneTime += currentRent * p.keyMoney; // Key money
+    }
+    // Renewal at start of each renewal period (not first)
+    if (m > 1 && renewalIntervalMonths > 0 && (m - 1) % renewalIntervalMonths === 0) {
+      oneTime += currentRent * p.renewalFee;
+    }
+    totalOneTimeCosts += oneTime;
+    totalRentPayments += currentRent + oneTime;
+
+    // Investment contribution
+    const purchaseTotal = purchaseData[m - 1].total;
+    let rawContribution = purchaseTotal - currentRent - oneTime - carryOver;
+
+    let contribution = 0;
+    if (rawContribution < 0) {
+      carryOver = -rawContribution;
+      contribution = 0;
+    } else {
+      contribution = rawContribution;
+      carryOver = 0;
+    }
+
+    // Grow and contribute
+    rentPortfolio *= (1 + monthlyInvestRate);
+    rentPortfolio += contribution;
+
+    rentData.push({
+      month: m,
+      rent: currentRent,
+      oneTime,
+      totalRent: currentRent + oneTime,
+      contribution,
+      carryOver,
+      portfolio: rentPortfolio,
+      purchaseTotal,
+    });
+  }
+
+  // ---- SALE CALCULATION ----
+  const remainingLoan = balance;
+
+  function calcPurchaseNet(sp) {
+    const sellingCost = sp * p.sellingCostRate / 100;
+
+    // Acquisition cost with depreciation
+    const purchaseCosts = p.propertyPrice * p.purchaseCostRate / 100;
+    const buildingCost = p.propertyPrice * p.buildingRatio / 100;
+    const depreciation = buildingCost * 0.9 * 0.015 * p.holdYears;
+    const adjustedAcq = p.propertyPrice + purchaseCosts - depreciation;
+
+    const gain = sp - adjustedAcq - sellingCost;
+    let tax = 0;
+    if (gain > 3000) { // 3000万円 special deduction
+      const taxableGain = gain - 3000;
+      if (taxableGain <= 6000) {
+        tax = taxableGain * 0.1421;
+      } else {
+        tax = 6000 * 0.1421 + (taxableGain - 6000) * 0.20315;
+      }
+    }
+
+    return sp - sellingCost - tax - remainingLoan + purchasePortfolio;
+  }
+
+  // Binary search for breakeven
+  let lo = 0, hi = p.propertyPrice * 3;
+  for (let i = 0; i < 100; i++) {
+    const mid = (lo + hi) / 2;
+    if (calcPurchaseNet(mid) >= rentPortfolio) hi = mid;
+    else lo = mid;
+  }
+  const breakeven = (lo + hi) / 2;
+
+  return {
+    purchaseData,
+    rentData,
+    purchasePortfolio,
+    rentPortfolio,
+    remainingLoan,
+    totalPurchasePayments,
+    totalPurchaseInterest,
+    totalRentPayments,
+    totalOneTimeCosts,
+    totalRentOnly: totalRentPayments - totalOneTimeCosts,
+    loanAmount,
+    breakeven,
+    calcPurchaseNet,
+    months,
+    annualInvest,
+  };
+}
+
+// ============================================================
+//  RENDERING
+// ============================================================
+
+function fmt(v, decimals = 0) {
+  if (isNaN(v) || !isFinite(v)) return '---';
+  return v.toLocaleString('ja-JP', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function renderSummary(result, params) {
+  const breakeven = result.breakeven;
+  const appreciation = ((breakeven / params.propertyPrice - 1) * 100);
+  const annualAppreciation = appreciation / params.holdYears;
+
+  const sp = params.salePrice || breakeven;
+  const purchaseNet = result.calcPurchaseNet(sp);
+  const rentNet = result.rentPortfolio;
+  const diff = purchaseNet - rentNet;
+  const winner = diff >= 0 ? 'purchase' : 'rent';
+
+  // Insurance value
+  const insuranceValue = params.insuranceCost * result.months;
+
+  let html = `
+    <div class="card highlight">
+      <div class="label">損益分岐 売却価格</div>
+      <div class="value">${fmt(breakeven)} 万円</div>
+      <div class="sub">購入価格比 ${appreciation >= 0 ? '+' : ''}${fmt(appreciation, 2)}%（年率 ${annualAppreciation >= 0 ? '+' : ''}${fmt(annualAppreciation, 2)}%）</div>
+    </div>
+    <div class="card">
+      <div class="label">売却想定価格</div>
+      <div class="value">${fmt(sp)} 万円</div>
+      <div class="sub">購入価格比 ${fmt((sp / params.propertyPrice - 1) * 100, 2)}%</div>
+    </div>
+    <div class="card">
+      <div class="label">判定（想定価格時）</div>
+      <div class="value"><span class="result-badge ${winner}">${winner === 'purchase' ? '🟢 購入有利' : '🔵 賃貸有利'}</span></div>
+      <div class="sub">差額 ${fmt(Math.abs(diff))} 万円</div>
+    </div>
+    <div class="card">
+      <div class="label">ローン残高（${params.holdYears}年後）</div>
+      <div class="value">${fmt(result.remainingLoan)} 万円</div>
+      <div class="sub">借入 ${fmt(result.loanAmount)} 万円</div>
+    </div>
+    <div class="card">
+      <div class="label">賃貸側 投資評価額</div>
+      <div class="value" style="color:var(--rent)">${fmt(rentNet)} 万円</div>
+      <div class="sub">拠出累計 ${fmt(result.rentData.reduce((s, d) => s + d.contribution, 0))} 万円</div>
+    </div>
+    <div class="card">
+      <div class="label">購入側 投資評価額</div>
+      <div class="value" style="color:var(--purchase)">${fmt(result.purchasePortfolio)} 万円</div>
+      <div class="sub">拠出 ${fmt(result.annualInvest)} 万円/年 × ${params.holdYears}年</div>
+    </div>
+    <div class="card">
+      <div class="label">団信の保険価値（参考）</div>
+      <div class="value">${fmt(insuranceValue)} 万円</div>
+      <div class="sub">同等保険料 ${params.holdYears}年分</div>
+    </div>
+  `;
+  document.getElementById('summaryCards').innerHTML = html;
+}
+
+function renderDetail(result, params) {
+  const sp = params.salePrice || result.breakeven;
+  const sellingCost = sp * params.sellingCostRate / 100;
+  const purchaseCosts = params.propertyPrice * params.purchaseCostRate / 100;
+  const buildingCost = params.propertyPrice * params.buildingRatio / 100;
+  const depreciation = buildingCost * 0.9 * 0.015 * params.holdYears;
+  const adjustedAcq = params.propertyPrice + purchaseCosts - depreciation;
+  const gain = sp - adjustedAcq - sellingCost;
+  let tax = 0;
+  if (gain > 3000) {
+    const tg = gain - 3000;
+    tax = tg <= 6000 ? tg * 0.1421 : 6000 * 0.1421 + (tg - 6000) * 0.20315;
+  }
+  const netFromSale = sp - sellingCost - tax;
+  const purchaseNet = netFromSale - result.remainingLoan + result.purchasePortfolio;
+  const rentNet = result.rentPortfolio;
+
+  const propTaxTotal = params.propertyTax * params.holdYears;
+
+  let html = `
+    <div class="detail-box purchase">
+      <h3>🟢 購入側の収支（売却価格 ${fmt(sp)} 万円）</h3>
+      <div class="detail-row"><span class="dl">売却価格</span><span>${fmt(sp)}</span></div>
+      <div class="detail-row"><span class="dl">売却コスト (${params.sellingCostRate}%)</span><span>-${fmt(sellingCost)}</span></div>
+      <div class="detail-row"><span class="dl">譲渡益</span><span>${fmt(gain)}</span></div>
+      <div class="detail-row"><span class="dl">税金 (3000万控除後)</span><span>-${fmt(tax)}</span></div>
+      <div class="detail-row"><span class="dl">売却手取り</span><span>${fmt(netFromSale)}</span></div>
+      <div class="detail-row"><span class="dl">ローン残高返済</span><span>-${fmt(result.remainingLoan)}</span></div>
+      <div class="detail-row"><span class="dl">投資評価額</span><span>+${fmt(result.purchasePortfolio)}</span></div>
+      <div class="detail-row"><span class="dl">ローン返済累計</span><span>${fmt(result.totalPurchasePayments)} (うち利息 ${fmt(result.totalPurchaseInterest)})</span></div>
+      <div class="detail-row"><span class="dl">固定資産税累計</span><span>${fmt(propTaxTotal)}</span></div>
+      <div class="detail-row"><span>純資産</span><span style="color:var(--purchase)">${fmt(purchaseNet)} 万円</span></div>
+    </div>
+    <div class="detail-box rent">
+      <h3>🔵 賃貸側の収支</h3>
+      <div class="detail-row"><span class="dl">家賃累計</span><span>${fmt(result.totalRentOnly)}</span></div>
+      <div class="detail-row"><span class="dl">礼金+更新料累計</span><span>${fmt(result.totalOneTimeCosts)}</span></div>
+      <div class="detail-row"><span class="dl">住居費合計</span><span>${fmt(result.totalRentPayments)}</span></div>
+      <div class="detail-row"><span class="dl">投資拠出累計</span><span>${fmt(result.rentData.reduce((s, d) => s + d.contribution, 0))}</span></div>
+      <div class="detail-row"><span class="dl">投資運用益</span><span>${fmt(result.rentPortfolio - result.rentData.reduce((s, d) => s + d.contribution, 0))}</span></div>
+      <div class="detail-row"><span>純資産（投資評価額）</span><span style="color:var(--rent)">${fmt(rentNet)} 万円</span></div>
+    </div>
+  `;
+  document.getElementById('detailSection').innerHTML = html;
+}
+
+// ============================================================
+//  CHARTS
+// ============================================================
+
+let breakevenChart, costChart, investChart;
+
+function renderCharts(result, params) {
+  const months = result.months;
+
+  // --- Breakeven Chart (scatter/line with linear x-axis) ---
+  const spMin = Math.round(params.propertyPrice * 0.7 / 100) * 100;
+  const spMax = Math.round(params.propertyPrice * 1.5 / 100) * 100;
+  const spStep = Math.max(50, Math.round((spMax - spMin) / 50 / 50) * 50);
+  const purchasePoints = [];
+  const rentPoints = [];
+  for (let sp = spMin; sp <= spMax; sp += spStep) {
+    purchasePoints.push({ x: sp, y: Math.round(result.calcPurchaseNet(sp)) });
+    rentPoints.push({ x: sp, y: Math.round(result.rentPortfolio) });
+  }
+
+  if (breakevenChart) breakevenChart.destroy();
+  breakevenChart = new Chart(document.getElementById('breakevenChart'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: '購入 純資産',
+          data: purchasePoints,
+          borderColor: '#059669',
+          backgroundColor: 'rgba(5,150,105,.1)',
+          showLine: true,
+          fill: false,
+          tension: 0.1,
+          pointRadius: 0,
+          borderWidth: 2.5,
+        },
+        {
+          label: '賃貸 純資産',
+          data: rentPoints,
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37,99,235,.1)',
+          showLine: true,
+          fill: false,
+          tension: 0,
+          pointRadius: 0,
+          borderWidth: 2.5,
+          borderDash: [6, 3],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'nearest', intersect: false },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            title: ctx => `売却価格: ${fmt(ctx[0].parsed.x)} 万円`,
+            label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)} 万円`,
+          },
+        },
+        annotation: {
+          annotations: {
+            breakeven: {
+              type: 'line',
+              xMin: result.breakeven,
+              xMax: result.breakeven,
+              borderColor: '#dc2626',
+              borderWidth: 2,
+              borderDash: [4, 4],
+              label: {
+                display: true,
+                content: `分岐点: ${fmt(result.breakeven)}万円`,
+                position: 'start',
+                backgroundColor: '#dc2626',
+                color: '#fff',
+                font: { size: 11 },
+                padding: 4,
+              },
+            },
+            zeroLine: {
+              type: 'line',
+              yMin: 0,
+              yMax: 0,
+              borderColor: '#9ca3af',
+              borderWidth: 1,
+              borderDash: [3, 3],
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          title: { display: true, text: '売却価格（万円）' },
+          ticks: { callback: v => fmt(v) },
+        },
+        y: {
+          title: { display: true, text: '純資産（万円）' },
+          ticks: { callback: v => fmt(v) },
+        },
+      },
+    },
+  });
+
+  // --- Cumulative Cost Chart ---
+  const yearLabels = [];
+  const purchaseCosts = [];
+  const rentCosts = [];
+  let pCum = 0, rCum = 0;
+  for (let m = 1; m <= months; m++) {
+    pCum += result.purchaseData[m - 1].total;
+    rCum += result.rentData[m - 1].totalRent;
+    if (m % 12 === 0) {
+      yearLabels.push(`${m / 12}年`);
+      purchaseCosts.push(Math.round(pCum));
+      rentCosts.push(Math.round(rCum));
+    }
+  }
+
+  // Add property tax to purchase cumulative
+  for (let i = 0; i < purchaseCosts.length; i++) {
+    purchaseCosts[i] += params.propertyTax * (i + 1);
+  }
+
+  if (costChart) costChart.destroy();
+  costChart = new Chart(document.getElementById('costChart'), {
+    type: 'line',
+    data: {
+      labels: yearLabels,
+      datasets: [
+        {
+          label: '購入 累積支出',
+          data: purchaseCosts,
+          borderColor: '#059669',
+          backgroundColor: 'rgba(5,150,105,.15)',
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2,
+        },
+        {
+          label: '賃貸 累積支出',
+          data: rentCosts,
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37,99,235,.15)',
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)} 万円`,
+          },
+        },
+      },
+      scales: {
+        y: { ticks: { callback: v => fmt(v) } },
+      },
+    },
+  });
+
+  // --- Investment Chart ---
+  const investLabels = [];
+  const purchaseInv = [];
+  const rentInv = [];
+  for (let m = 1; m <= months; m++) {
+    if (m % 12 === 0) {
+      investLabels.push(`${m / 12}年`);
+      purchaseInv.push(Math.round(result.purchaseData[m - 1].portfolio * 100) / 100);
+      rentInv.push(Math.round(result.rentData[m - 1].portfolio * 100) / 100);
+    }
+  }
+
+  if (investChart) investChart.destroy();
+  investChart = new Chart(document.getElementById('investChart'), {
+    type: 'line',
+    data: {
+      labels: investLabels,
+      datasets: [
+        {
+          label: '購入側 投資',
+          data: purchaseInv,
+          borderColor: '#059669',
+          fill: false,
+          tension: 0.3,
+          borderWidth: 2,
+        },
+        {
+          label: '賃貸側 投資',
+          data: rentInv,
+          borderColor: '#2563eb',
+          fill: false,
+          tension: 0.3,
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y, 1)} 万円`,
+          },
+        },
+      },
+      scales: {
+        y: { ticks: { callback: v => fmt(v) } },
+      },
+    },
+  });
+}
+
+// ============================================================
+//  SENSITIVITY TABLE
+// ============================================================
+
+function renderSensitivity(params) {
+  const returnRates = [3, 5, 7, 10, 12];
+  const rate3Values = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5];
+
+  let html = '<thead><tr><th class="corner">利回り＼金利(7年~)</th>';
+  rate3Values.forEach(r => {
+    const isCurrent = Math.abs(r - params.rate3) < 0.01;
+    html += `<th ${isCurrent ? 'class="current"' : ''}>${r.toFixed(1)}%</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  returnRates.forEach(ret => {
+    const isCurrentRow = Math.abs(ret - params.investReturn) < 0.01;
+    html += `<tr><th ${isCurrentRow ? 'class="current"' : ''}>${ret}%</th>`;
+    rate3Values.forEach(r3 => {
+      const isCurrent = Math.abs(r3 - params.rate3) < 0.01 && isCurrentRow;
+      const res = simulate(params, { rate3: r3, investReturn: ret });
+      const be = res.breakeven;
+      const apprecPct = ((be / params.propertyPrice - 1) * 100);
+      const cls = isCurrent ? 'current' : (be <= params.propertyPrice ? 'purchase-win' : '');
+      html += `<td class="${cls}" title="年率${fmt(apprecPct / params.holdYears, 2)}%">
+        ${fmt(be)}<br><span style="font-size:.7rem;opacity:.7">(${apprecPct >= 0 ? '+' : ''}${fmt(apprecPct, 1)}%)</span></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('sensTable').innerHTML = html;
+}
+
+// ============================================================
+//  MONTHLY TABLE
+// ============================================================
+
+function renderMonthlyTable(result) {
+  let html = `<thead><tr>
+    <th>月</th><th>年</th>
+    <th class="col-header-purchase">返済額</th>
+    <th class="col-header-purchase">うち利息</th>
+    <th class="col-header-purchase">ローン残高</th>
+    <th class="col-header-purchase">管理費等</th>
+    <th class="col-header-purchase">月額合計</th>
+    <th class="col-header-purchase">金利</th>
+    <th class="col-header-rent">家賃</th>
+    <th class="col-header-rent">一時金</th>
+    <th class="col-header-rent">投資拠出</th>
+    <th class="col-header-rent">繰越</th>
+    <th class="col-header-rent">投資残高</th>
+    <th class="col-header-purchase">購入投資残高</th>
+  </tr></thead><tbody>`;
+
+  for (let m = 0; m < result.months; m++) {
+    const pd = result.purchaseData[m];
+    const rd = result.rentData[m];
+    const year = Math.ceil((m + 1) / 12);
+    html += `<tr>
+      <td>${m + 1}</td><td>${year}年目</td>
+      <td class="col-purchase">${fmt(pd.payment, 2)}</td>
+      <td class="col-purchase">${fmt(pd.interest, 2)}</td>
+      <td class="col-purchase">${fmt(pd.balance, 1)}</td>
+      <td class="col-purchase">${fmt(pd.mgmtFee, 1)}</td>
+      <td class="col-purchase"><b>${fmt(pd.total, 2)}</b></td>
+      <td class="col-purchase">${pd.rate}%</td>
+      <td class="col-rent">${fmt(rd.rent, 1)}</td>
+      <td class="col-rent">${rd.oneTime > 0 ? fmt(rd.oneTime, 1) : '-'}</td>
+      <td class="col-rent">${fmt(rd.contribution, 2)}</td>
+      <td class="col-rent">${rd.carryOver > 0 ? fmt(rd.carryOver, 2) : '-'}</td>
+      <td class="col-rent"><b>${fmt(rd.portfolio, 1)}</b></td>
+      <td class="col-purchase">${fmt(pd.portfolio, 1)}</td>
+    </tr>`;
+  }
+  html += '</tbody>';
+  document.getElementById('monthlyTable').innerHTML = html;
+}
+
+function toggleMonthlyTable() {
+  const wrap = document.getElementById('monthlyWrap');
+  const btn = document.getElementById('toggleTable');
+  if (wrap.style.display === 'none') {
+    wrap.style.display = 'block';
+    btn.textContent = '▲ テーブルを非表示';
+  } else {
+    wrap.style.display = 'none';
+    btn.textContent = '▼ テーブルを表示';
+  }
+}
+
+// ============================================================
+//  PRESETS
+// ============================================================
+
+function applyPreset(name) {
+  const presets = {
+    conservative: {
+      rate1: 2.0, rate2: 2.5, rate3: 3.0,
+      investReturn: 5, startRent: 33, rentIncrease: 1.0,
+    },
+    base: {
+      rate1: 1.5, rate2: 1.75, rate3: 2.0,
+      investReturn: 7, startRent: 33, rentIncrease: 1.5,
+    },
+    optimistic: {
+      rate1: 1.0, rate2: 1.25, rate3: 1.5,
+      investReturn: 10, startRent: 33, rentIncrease: 2.0,
+    },
+  };
+  const p = presets[name];
+  if (!p) return;
+  Object.keys(p).forEach(k => {
+    const el = document.getElementById(k);
+    if (el) el.value = p[k];
+  });
+  const descs = {
+    conservative: '金利高め・利回り控えめ（購入に厳しい）',
+    base: '記事の前提条件（基本シナリオ）',
+    optimistic: '金利低め・利回り高め（賃貸に厳しい）',
+  };
+  document.getElementById('presetDesc').textContent = descs[name] || '';
+  recalculate();
+}
+
+// ============================================================
+//  DYNAMIC LABELS
+// ============================================================
+
+function updateDynamicLabels() {
+  const rp1 = parseInt(document.getElementById('ratePeriod1').value) || 3;
+  const rp2 = parseInt(document.getElementById('ratePeriod2').value) || 6;
+  const mp1 = parseInt(document.getElementById('mgmtPeriod1').value) || 5;
+  document.getElementById('ratePeriod1End').textContent = rp1 + 1;
+  document.getElementById('ratePeriod2End').textContent = rp2 + 1;
+  document.getElementById('mgmtPeriod1End').textContent = mp1 + 1;
+}
+
+// ============================================================
+//  MAIN RECALCULATE
+// ============================================================
+
+let recalcTimer = null;
+
+function recalculate() {
+  updateDynamicLabels();
+  const params = getParams();
+  const result = simulate(params);
+
+  renderSummary(result, params);
+  renderDetail(result, params);
+  renderCharts(result, params);
+  renderSensitivity(params);
+  renderMonthlyTable(result);
+}
+
+function debouncedRecalc() {
+  clearTimeout(recalcTimer);
+  recalcTimer = setTimeout(recalculate, 150);
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Attach event listeners to all inputs
+  document.querySelectorAll('input[type="number"]').forEach(el => {
+    el.addEventListener('input', debouncedRecalc);
+  });
+  recalculate();
+});
+</script>
+</body>
+</html>
